@@ -36,8 +36,9 @@
       <HintPath>..\..\..\..\..\Downloads\NPOI 2.2.1 binary package\Release\Net40\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.VisualBasic" />
-    <Reference Include="NDesk.Options">
-      <HintPath>..\..\..\..\..\..\..\temp\New folder (6)\NDesk.Options.dll</HintPath>
+    <Reference Include="NDesk.Options, Version=0.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\NDesk.Options.dll</HintPath>
     </Reference>
     <Reference Include="NPOI">
       <HintPath>..\..\..\..\..\Downloads\NPOI 2.2.1 binary package\Release\Net40\NPOI.dll</HintPath>
