@@ -17,7 +17,7 @@ namespace csv2excel
     {
         static int verbosity;
 
-        public static void Main(string[] args)
+        public static int Main(string[] args)
         {
             bool show_help = false;
 
@@ -60,13 +60,13 @@ namespace csv2excel
                 Console.Write("{0}: ", System.AppDomain.CurrentDomain.FriendlyName);
                 Console.WriteLine(e.Message);
                 Console.WriteLine("Try `{0} --help' for more information.", System.AppDomain.CurrentDomain.FriendlyName);
-                return;
+                return 1;
             }
 
             if (show_help)
             {
                 ShowHelp(p);
-                return;
+                return 0;
             }
 
             Debug("outputFile: \t\t{0}", outputFile);
@@ -107,7 +107,10 @@ namespace csv2excel
             else
             {
                 Console.WriteLine("Unrecognized format: {0}", format);
+                return 1;
             }
+
+            return 0;
         }
 
         static void ShowHelp(OptionSet p)
