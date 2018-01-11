@@ -9,7 +9,7 @@ All command line options:
 
 i = the path to the input file to convert
 
-o = the path of the output file (path + filename) 
+o = the path of the output file (path\filename.ext)
     if outputfile isn't specified, it will be set to the same as the input file with the new extension
     
 c = the delimiter separating columns of input file
