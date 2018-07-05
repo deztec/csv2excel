@@ -20,14 +20,15 @@ namespace csv2excel
         public static int Main(string[] args)
         {
             bool show_help = false;
-
+            
             //set default arguments
             string inputFile = "";
             string outputFile = "";
             string columnDelimiter = ",";
             string lineDelimiter = "\\r\\n";
             string format = "xlsx";
-
+            bool textOnly = false;
+            
             var p = new OptionSet() {
                 { "i|in=", "the {inputfile} to convert.",
                   v => inputFile = v },
@@ -39,6 +40,8 @@ namespace csv2excel
                   v => lineDelimiter = v },
                 { "f|format=", "the {format} for the output file [xls|xlsx].",
                   v => format = v },
+                { "t", "force all cells in output worksheet to be of type Text",
+                  v => { if (v != null) textOnly = true; } },
                 { "v", "increase debug message verbosity",
                   v => { if (v != null) ++verbosity; } },
                 { "h|help",  "show this message and exit", 
@@ -74,6 +77,7 @@ namespace csv2excel
             Debug("columnDelimiter: \t{0}", columnDelimiter);
             Debug("lineDelimiter: \t{0}", lineDelimiter);
             Debug("format: \t\t{0}", format);
+            Debug("textOnly: \t\t{0}", textOnly);
 
             columnDelimiter = Regex.Unescape(columnDelimiter);
             lineDelimiter = Regex.Unescape(lineDelimiter);
@@ -98,11 +102,11 @@ namespace csv2excel
             //load the necessary assemblies for that output type
             if (format.ToLower() == "xls")
             {
-                writeToXLS(outputFile, inputData, columnDelimiter, lineDelimiter);
+                writeToXLS(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly);
             }
             else if (format.ToLower() == "xlsx")
             {
-                writeToXLSX(outputFile, inputData, columnDelimiter, lineDelimiter);
+                writeToXLSX(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly);
             }
             else
             {
@@ -133,7 +137,7 @@ namespace csv2excel
             }
         }
 
-        static void writeToXLS(string outputFile, string outputData, string columnDelimiter, string lineDelimiter)
+        static void writeToXLS(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly)
         {
             HSSFWorkbook myWorkbook = new HSSFWorkbook();
             ISheet mySheet = myWorkbook.CreateSheet("Sheet1");
@@ -160,7 +164,29 @@ namespace csv2excel
 
                         foreach (string field in fields)
                         {
-                            row.CreateCell(colCount).SetCellValue(field);
+                            if (textOnly)
+                            {
+                                row.CreateCell(colCount).SetCellValue(field);
+                            }
+                            else
+                            {
+                                DateTime dt;
+                                double d;
+
+                                if (DateTime.TryParse(field, out dt))
+                                {
+                                    row.CreateCell(colCount).SetCellValue(dt);
+                                }
+                                else if (Double.TryParse(field, out d))
+                                {
+                                    row.CreateCell(colCount).SetCellValue(d);
+                                }
+                                else //default to string/text
+                                {
+                                    row.CreateCell(colCount).SetCellValue(field);
+                                }
+                            }
+
                             colCount++;
                         }
                     } 
@@ -177,7 +203,7 @@ namespace csv2excel
             }
         }
 
-        static void writeToXLSX(string outputFile, string outputData, string columnDelimiter, string lineDelimiter)
+        static void writeToXLSX(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly)
         {
             XSSFWorkbook myWorkbook = new XSSFWorkbook();
             ISheet mySheet = myWorkbook.CreateSheet("Sheet1");
@@ -204,7 +230,29 @@ namespace csv2excel
 
                         foreach (string field in fields)
                         {
-                            row.CreateCell(colCount).SetCellValue(field);
+                            if (textOnly)
+                            {
+                                row.CreateCell(colCount).SetCellValue(field);
+                            }
+                            else
+                            {
+                                DateTime dt;
+                                double d;
+
+                                if (DateTime.TryParse(field, out dt))
+                                {
+                                    row.CreateCell(colCount).SetCellValue(dt);
+                                }
+                                else if (Double.TryParse(field, out d))
+                                {
+                                    row.CreateCell(colCount).SetCellValue(d);
+                                }
+                                else //default to string/text
+                                {
+                                    row.CreateCell(colCount).SetCellValue(field);
+                                }
+                            }
+
                             colCount++;
                         }
                     }
