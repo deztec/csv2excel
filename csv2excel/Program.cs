@@ -170,14 +170,9 @@ namespace csv2excel
                             }
                             else
                             {
-                                DateTime dt;
                                 double d;
 
-                                if (DateTime.TryParse(field, out dt))
-                                {
-                                    row.CreateCell(colCount).SetCellValue(dt);
-                                }
-                                else if (Double.TryParse(field, out d))
+                                if (Double.TryParse(field, out d))
                                 {
                                     row.CreateCell(colCount).SetCellValue(d);
                                 }
@@ -236,14 +231,9 @@ namespace csv2excel
                             }
                             else
                             {
-                                DateTime dt;
                                 double d;
 
-                                if (DateTime.TryParse(field, out dt))
-                                {
-                                    row.CreateCell(colCount).SetCellValue(dt);
-                                }
-                                else if (Double.TryParse(field, out d))
+                                if (Double.TryParse(field, out d))
                                 {
                                     row.CreateCell(colCount).SetCellValue(d);
                                 }
