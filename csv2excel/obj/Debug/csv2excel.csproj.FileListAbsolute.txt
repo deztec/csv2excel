@@ -24,4 +24,3 @@ C:\development\csv2excel\csv2excel\obj\Debug\csv2excel.pdb
 C:\development\csv2excel\csv2excel\bin\Debug\csv2excel.exe.config
 C:\development\csv2excel\csv2excel\bin\Debug\csv2excel.exe
 C:\development\csv2excel\csv2excel\bin\Debug\csv2excel.pdb
-C:\development\csv2excel\csv2excel\obj\Debug\csv2excel.csprojAssemblyReference.cache
