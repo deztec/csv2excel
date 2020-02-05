@@ -57,6 +57,15 @@ namespace csv2excel
                 {
                     show_help = true;
                 }
+
+                format = format.ToLower();
+
+                if (format != "xlsx" && format != "xls")
+                {
+                    Console.WriteLine("Unrecognized format: {0}", format);
+                    show_help = true;
+                }
+
             }
             catch (OptionException e)
             {
@@ -95,24 +104,7 @@ namespace csv2excel
             //remove any previous version of the file
             File.Delete(outputFile);
 
-            //there are currently two separate methods because creating an IWorkbook interface and then assigning the object was 
-            //throwing an exception on the XSSFWorkbook object
-            //
-            //this will be beneficial because having two separate methods causes the .net JIT compiler to only
-            //load the necessary assemblies for that output type
-            if (format.ToLower() == "xls")
-            {
-                writeToXLS(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly);
-            }
-            else if (format.ToLower() == "xlsx")
-            {
-                writeToXLSX(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly);
-            }
-            else
-            {
-                Console.WriteLine("Unrecognized format: {0}", format);
-                return 1;
-            }
+            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format);
 
             return 0;
         }
@@ -137,70 +129,19 @@ namespace csv2excel
             }
         }
 
-        static void writeToXLS(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly)
+        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format)
         {
-            HSSFWorkbook myWorkbook = new HSSFWorkbook();
-            ISheet mySheet = myWorkbook.CreateSheet("Sheet1");
+            IWorkbook myWorkbook = null;
 
-            int rowCount = 0;
-            int colCount = 0;
-
-            foreach (string currLine in outputData.Split(new String[] { lineDelimiter }, StringSplitOptions.None))
+            if (format == "xlsx")
             {
-                IRow row = mySheet.CreateRow(rowCount);
-
-                colCount = 0;
-
-                using (TextFieldParser parser = new TextFieldParser(new StringReader(currLine)))
-                {
-                    parser.HasFieldsEnclosedInQuotes = true;
-                    parser.SetDelimiters(columnDelimiter);
-
-                    string[] fields;
-
-                    while (!parser.EndOfData)
-                    {
-                        fields = parser.ReadFields();
-
-                        foreach (string field in fields)
-                        {
-                            if (textOnly)
-                            {
-                                row.CreateCell(colCount).SetCellValue(field);
-                            }
-                            else
-                            {
-                                double d;
-
-                                if (Double.TryParse(field, out d))
-                                {
-                                    row.CreateCell(colCount).SetCellValue(d);
-                                }
-                                else //default to string/text
-                                {
-                                    row.CreateCell(colCount).SetCellValue(field);
-                                }
-                            }
-
-                            colCount++;
-                        }
-                    } 
-                }
-
-                rowCount++;
+                myWorkbook = new XSSFWorkbook();
             }
-
-            //Write the stream data of workbook to the root directory
-            using (FileStream file = new FileStream(outputFile, FileMode.Create))
+            else if (format == "xls")
             {
-                myWorkbook.Write(file);
-                file.Close();
+                myWorkbook = new HSSFWorkbook();
             }
-        }
-
-        static void writeToXLSX(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly)
-        {
-            XSSFWorkbook myWorkbook = new XSSFWorkbook();
+             
             ISheet mySheet = myWorkbook.CreateSheet("Sheet1");
 
             int rowCount = 0;
