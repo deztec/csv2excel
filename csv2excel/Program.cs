@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,6 +24,7 @@ namespace csv2excel
             //set default arguments
             string inputFile = "";
             string outputFile = "";
+            string templateFile = "";
             string columnDelimiter = ",";
             string lineDelimiter = "\\r\\n";
             string format = "xlsx";
@@ -34,6 +35,8 @@ namespace csv2excel
                   v => inputFile = v },
                 { "o|out=", "the path of the {outputfile}.",
                   v => outputFile = v },
+                { "tem|template=", "the path of the {templateFile}.",
+                  v => templateFile = v },
                 { "c|coldel=", "the {delimiter} separating columns of inputfile.",
                   v => columnDelimiter = v },
                 { "l|linedel=", "the {delimiter} separating lines of inputfile.",
@@ -104,7 +107,7 @@ namespace csv2excel
             //remove any previous version of the file
             File.Delete(outputFile);
 
-            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format);
+            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format,templateFile);
 
             return 0;
         }
@@ -129,69 +132,81 @@ namespace csv2excel
             }
         }
 
-        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format)
+        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format, string templateFile)
         {
             IWorkbook myWorkbook = null;
+            ISheet mySheet = null;
 
-            if (format == "xlsx")
-            {
-                myWorkbook = new XSSFWorkbook();
-            }
-            else if (format == "xls")
-            {
-                myWorkbook = new HSSFWorkbook();
-            }
-             
-            ISheet mySheet = myWorkbook.CreateSheet("Sheet1");
 
+
+            IRow copyRow = null;
+            TextFieldParser parser = new TextFieldParser(new StringReader(outputData));
+            parser.HasFieldsEnclosedInQuotes = true;
+            parser.SetDelimiters(columnDelimiter);
+            string[] fields;
             int rowCount = 0;
             int colCount = 0;
-
-            foreach (string currLine in outputData.Split(new String[] { lineDelimiter }, StringSplitOptions.None))
+            if (File.Exists(templateFile))
             {
-                IRow row = mySheet.CreateRow(rowCount);
-
-                colCount = 0;
-
-                using (TextFieldParser parser = new TextFieldParser(new StringReader(currLine)))
+                myWorkbook = new XSSFWorkbook(templateFile);
+                mySheet = myWorkbook.GetSheetAt(0);
+                textOnly = true;
+                rowCount = 1;
+                fields = parser.ReadFields();
+                copyRow = mySheet.GetRow(0);
+            }
+            else
+            {
+                if (format == "xlsx")
                 {
-                    parser.HasFieldsEnclosedInQuotes = true;
-                    parser.SetDelimiters(columnDelimiter);
-
-                    string[] fields;
-
-                    while (!parser.EndOfData)
-                    {
-                        fields = parser.ReadFields();
-
-                        foreach (string field in fields)
-                        {
-                            if (textOnly)
-                            {
-                                row.CreateCell(colCount).SetCellValue(field);
-                            }
-                            else
-                            {
-                                double d;
-
-                                if (Double.TryParse(field, out d))
-                                {
-                                    row.CreateCell(colCount).SetCellValue(d);
-                                }
-                                else //default to string/text
-                                {
-                                    row.CreateCell(colCount).SetCellValue(field);
-                                }
-                            }
-
-                            colCount++;
-                        }
-                    }
+                    myWorkbook = new XSSFWorkbook();
+                }
+                else if (format == "xls")
+                {
+                    myWorkbook = new HSSFWorkbook();
                 }
 
+                mySheet = myWorkbook.CreateSheet("Sheet1");
+            }
+
+            while (!parser.EndOfData)
+            {
+                IRow row = null;
+                if (copyRow == null)
+                    row = mySheet.CreateRow(rowCount);
+                else
+                    row = copyRow.CopyRowTo(rowCount);
+                colCount = 0;
+                fields = parser.ReadFields();
+
+                foreach (string field in fields)
+                {
+                    if (copyRow != null)
+                        row.GetCell(colCount).SetCellValue(field);
+                    else if (textOnly)
+                    {
+                        row.CreateCell(colCount).SetCellValue(field);
+                    }
+                    else
+                    {
+                        double d;
+
+                        if (Double.TryParse(field, out d))
+                        {
+                            row.CreateCell(colCount).SetCellValue(d);
+                        }
+                        else //default to string/text
+                        {
+                            row.CreateCell(colCount).SetCellValue(field);
+                        }
+                    }
+
+                    colCount++;
+                }
                 rowCount++;
             }
 
+            
             //Write the stream data of workbook to the root directory
             using (FileStream file = new FileStream(outputFile, FileMode.Create))
             {
