@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,12 +28,24 @@ namespace csv2excel
             string lineDelimiter = "\\r\\n";
             string format = "xlsx";
             bool textOnly = false;
-            
+            string templateFile = "";
+            int templateSheetNumber = 0;
+            int templateExampleRow = 1;
+            int skipRows = 0;
+
             var p = new OptionSet() {
                 { "i|in=", "the {inputfile} to convert.",
                   v => inputFile = v },
                 { "o|out=", "the path of the {outputfile}.",
                   v => outputFile = v },
+                { "tem|template=", "the path of the optional {templateFile}. must me an xlsx.",
+                  v => templateFile = v },
+                { "temEx|templateExampleRow=", "The example row the template is based on. Default is 1 (the 2nd row).",
+                  v =>  { if (v != null) int.TryParse(v,out templateExampleRow); }},
+                { "temSheet|templateSheetNumber=", "The sheet in the template the data is inserted into. Default is 0.",
+                  v =>  { if (v != null) int.TryParse(v,out templateSheetNumber); }},
+                { "skip|skipRows=", "Skip the first n rows of the input. If a template is set default is 1, else 0.",
+                  v =>  { if(templateFile!="") skipRows=1; if (v != null) int.TryParse(v,out skipRows); }},
                 { "c|coldel=", "the {delimiter} separating columns of inputfile.",
                   v => columnDelimiter = v },
                 { "l|linedel=", "the {delimiter} separating lines of inputfile.",
@@ -100,11 +112,13 @@ namespace csv2excel
             Debug("outputFile (calcd): \t{0}", outputFile);
 
             string inputData = File.ReadAllText(inputFile);
- 
+            if(lineDelimiter !="\r\n")
+                inputData = inputData.Replace(lineDelimiter, "\r\n"); // the TextFieldParser only parses lines on this charater. 
+
             //remove any previous version of the file
             File.Delete(outputFile);
 
-            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format);
+            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format,templateFile, templateSheetNumber,templateExampleRow);
 
             return 0;
         }
@@ -118,6 +132,7 @@ namespace csv2excel
             p.WriteOptionDescriptions(Console.Out);
             Console.WriteLine();
             Console.WriteLine("e.g.: {0} -i input.csv -c \\t -l \\r\\n", System.AppDomain.CurrentDomain.FriendlyName);
+            Console.WriteLine("e.g.: {0} -tem ..\template.xlsx -i importData.csv ", System.AppDomain.CurrentDomain.FriendlyName);
         }
 
         static void Debug(string format, params object[] args)
@@ -129,74 +144,103 @@ namespace csv2excel
             }
         }
 
-        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format)
+        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format, string templateFile,int templateSheetNumber, int templateExampleRow)
         {
             IWorkbook myWorkbook = null;
-
-            if (format == "xlsx")
-            {
-                myWorkbook = new XSSFWorkbook();
-            }
-            else if (format == "xls")
-            {
-                myWorkbook = new HSSFWorkbook();
-            }
-             
-            ISheet mySheet = myWorkbook.CreateSheet("Sheet1");
-
+            ISheet mySheet = null;
+            IRow copyRow = null;
+            TextFieldParser parser = new TextFieldParser(new StringReader(outputData));
+           
+            parser.HasFieldsEnclosedInQuotes = true;
+            parser.SetDelimiters(columnDelimiter);
+            string[] fields;
             int rowCount = 0;
             int colCount = 0;
-
-            foreach (string currLine in outputData.Split(new String[] { lineDelimiter }, StringSplitOptions.None))
+            if (File.Exists(templateFile))
             {
-                IRow row = mySheet.CreateRow(rowCount);
+                myWorkbook = new XSSFWorkbook(templateFile);
+                mySheet = myWorkbook.GetSheetAt(templateSheetNumber);
+                textOnly = true;
+                rowCount = templateExampleRow+1;
+                fields = parser.ReadFields();
+                copyRow = mySheet.GetRow(templateExampleRow);
+            }
+            else
+            {
+                if (format == "xlsx")
+                {
+                    myWorkbook = new XSSFWorkbook();
+                }
+                else if (format == "xls")
+                {
+                    myWorkbook = new HSSFWorkbook();
+                }
+                mySheet = myWorkbook.CreateSheet("Sheet1");
+            }
+            myWorkbook.MissingCellPolicy = MissingCellPolicy.CREATE_NULL_AS_BLANK;
 
+            while (!parser.EndOfData)
+            {
+                fields = parser.ReadFields();
+                IRow row = null;
+                if (copyRow != null)
+                    row = copyRow.CopyRowTo(rowCount); 
+                else
+                    row = mySheet.CreateRow(rowCount);
                 colCount = 0;
 
-                using (TextFieldParser parser = new TextFieldParser(new StringReader(currLine)))
+
+                foreach (string field in fields)
                 {
-                    parser.HasFieldsEnclosedInQuotes = true;
-                    parser.SetDelimiters(columnDelimiter);
-
-                    string[] fields;
-
-                    while (!parser.EndOfData)
+                    if (copyRow != null)
                     {
-                        fields = parser.ReadFields();
-
-                        foreach (string field in fields)
+                        bool isSet = false;
+                        if (copyRow.GetCell(colCount).CellType == CellType.Numeric)
                         {
-                            if (textOnly)
+                            double d;
+                            if (Double.TryParse(field, out d))
                             {
-                                row.CreateCell(colCount).SetCellValue(field);
+                                row.GetCell(colCount).SetCellValue(d);
+                                isSet = true;
                             }
-                            else
-                            {
-                                double d;
-
-                                if (Double.TryParse(field, out d))
-                                {
-                                    row.CreateCell(colCount).SetCellValue(d);
-                                }
-                                else //default to string/text
-                                {
-                                    row.CreateCell(colCount).SetCellValue(field);
-                                }
-                            }
-
-                            colCount++;
+                        }
+                        if(!isSet)
+                        row.GetCell(colCount).SetCellValue(field);
+                    }
+                    else if (textOnly)
+                    {
+                        row.CreateCell(colCount).SetCellValue(field);
+                    }
+                    else
+                    {
+                        double d;
+                        if (Double.TryParse(field, out d))
+                        {
+                            row.CreateCell(colCount).SetCellValue(d);
+                        }
+                        else //default to string/text
+                        {
+                            row.CreateCell(colCount).SetCellValue(field);
                         }
                     }
-                }
 
+                    colCount++;
+                }
                 rowCount++;
             }
-
+            //Remove your "example" row from the output
+            if (copyRow != null) {
+                int copyRowIndex = copyRow.RowNum;
+                mySheet.RemoveRow(copyRow);
+                mySheet.ShiftRows(copyRowIndex + 1, mySheet.LastRowNum, -1);
+            }
+            
             //Write the stream data of workbook to the root directory
             using (FileStream file = new FileStream(outputFile, FileMode.Create))
             {
                 myWorkbook.Write(file);
                 file.Close();
+                Console.WriteLine("created {0} with {1} rows. ", outputFile, rowCount-1);
             }
         }
     }
