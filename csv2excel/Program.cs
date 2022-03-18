@@ -32,6 +32,7 @@ namespace csv2excel
             int templateSheetNumber = 0;
             int templateExampleRow = 1;
             int skipRows = 0;
+            bool isskipRowSet = false;
 
             var p = new OptionSet() {
                 { "i|in=", "the {inputfile} to convert.",
@@ -45,7 +46,7 @@ namespace csv2excel
                 { "temSheet|templateSheetNumber=", "The sheet in the template the data is inserted into. Default is 0.",
                   v =>  { if (v != null) int.TryParse(v,out templateSheetNumber); }},
                 { "skip|skipRows=", "Skip the first n rows of the input. If a template is set default is 1, else 0.",
-                  v =>  { if(templateFile!="") skipRows=1; if (v != null) int.TryParse(v,out skipRows); }},
+                  v =>  { if (v != null) isskipRowSet=true; int.TryParse(v,out skipRows); }},
                 { "c|coldel=", "the {delimiter} separating columns of inputfile.",
                   v => columnDelimiter = v },
                 { "l|linedel=", "the {delimiter} separating lines of inputfile.",
@@ -59,11 +60,12 @@ namespace csv2excel
                 { "h|help",  "show this message and exit", 
                   v => show_help = v != null },
             };
-
+            
             try
             {
                 p.Parse(args);
-
+                if (!isskipRowSet && templateFile != "")
+                    skipRows = 1;
                 //this is the only required argument
                 if (String.IsNullOrWhiteSpace(inputFile))
                 {
@@ -118,7 +120,7 @@ namespace csv2excel
             //remove any previous version of the file
             File.Delete(outputFile);
 
-            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format,templateFile, templateSheetNumber,templateExampleRow);
+            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format,templateFile, templateSheetNumber,templateExampleRow,skipRows);
 
             return 0;
         }
@@ -144,7 +146,7 @@ namespace csv2excel
             }
         }
 
-        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format, string templateFile,int templateSheetNumber, int templateExampleRow)
+        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format, string templateFile,int templateSheetNumber, int templateExampleRow,int skipRows)
         {
             IWorkbook myWorkbook = null;
             ISheet mySheet = null;
@@ -162,7 +164,7 @@ namespace csv2excel
                 mySheet = myWorkbook.GetSheetAt(templateSheetNumber);
                 textOnly = true;
                 rowCount = templateExampleRow+1;
-                fields = parser.ReadFields();
+                //fields = parser.ReadFields();
                 copyRow = mySheet.GetRow(templateExampleRow);
             }
             else
@@ -178,6 +180,11 @@ namespace csv2excel
                 mySheet = myWorkbook.CreateSheet("Sheet1");
             }
             myWorkbook.MissingCellPolicy = MissingCellPolicy.CREATE_NULL_AS_BLANK;
+            while (!parser.EndOfData && skipRows > 0)
+            {
+                fields = parser.ReadFields();
+                skipRows--;
+            }
 
             while (!parser.EndOfData)
             {
@@ -232,7 +239,13 @@ namespace csv2excel
             if (copyRow != null) {
                 int copyRowIndex = copyRow.RowNum;
                 mySheet.RemoveRow(copyRow);
-                mySheet.ShiftRows(copyRowIndex + 1, mySheet.LastRowNum, -1);
+                try
+                {
+                    mySheet.ShiftRows(copyRowIndex + 1, mySheet.LastRowNum, -1);
+                }
+                catch (Exception e) { 
+                //It trows an error if there are no rows. Easier to just catch here.
+                }
             }
             
             //Write the stream data of workbook to the root directory
