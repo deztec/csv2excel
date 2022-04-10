@@ -3,7 +3,7 @@
 
 The only required parameter is the input file to convert.
 
-csv2excel.exe -i input.csv
+`csv2excel.exe -i input.csv`
 
 All command line options:
 
