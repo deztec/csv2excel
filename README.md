@@ -29,4 +29,4 @@ v = increase debug message verbosity
 h = show command line options
 
 
-Download the binary here: [bin/Release/csv2excel.exe](https://github.com/nmolinos/csv2excel/blob/master/csv2excel/bin/Release/csv2excel.exe)
+Download the binary here: [bin/Release/csv2excel.exe](https://github.com/nmolinos/csv2excel/raw/master/csv2excel/bin/Release/csv2excel.exe)
