@@ -30,7 +30,7 @@ namespace csv2excel
             bool textOnly = false;
             
             var p = new OptionSet() {
-                { "i|in=", "the {inputfile} to convert.",
+                { "i|in=", "the {inputfile} to convert. (REQUIRED)",
                   v => inputFile = v },
                 { "o|out=", "the path of the {outputfile}.",
                   v => outputFile = v },
@@ -117,6 +117,7 @@ namespace csv2excel
             Console.WriteLine("Options:");
             p.WriteOptionDescriptions(Console.Out);
             Console.WriteLine();
+            Console.WriteLine("e.g.: {0} -i input.csv", System.AppDomain.CurrentDomain.FriendlyName);
             Console.WriteLine("e.g.: {0} -i input.csv -c \\t -l \\r\\n", System.AppDomain.CurrentDomain.FriendlyName);
         }
 
