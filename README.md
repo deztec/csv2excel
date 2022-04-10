@@ -3,7 +3,7 @@
 
 The only required parameter is the input file to convert.
 
-csv2excel.exe -i input.csv
+`csv2excel.exe -i input.csv`
 
 All command line options:
 
@@ -29,4 +29,4 @@ v = increase debug message verbosity
 h = show command line options
 
 
-Download the executable here: [bin/Release/csv2excel.exe](https://github.com/nmolinos/csv2excel/raw/master/csv2excel/bin/Release/csv2excel.exe)
+Download the executable here: https://github.com/nmolinos/csv2excel/releases
