@@ -25,9 +25,9 @@ namespace csv2excel
             string inputFile = "";
             string outputFile = "";
             string columnDelimiter = ",";
-            string lineDelimiter = "\\r\\n";
             string format = "xlsx";
             bool textOnly = false;
+            bool noQuotes = false;
             
             var p = new OptionSet() {
                 { "i|in=", "the {inputfile} to convert. (REQUIRED)",
@@ -36,12 +36,12 @@ namespace csv2excel
                   v => outputFile = v },
                 { "c|coldel=", "the {delimiter} separating columns of inputfile.",
                   v => columnDelimiter = v },
-                { "l|linedel=", "the {delimiter} separating lines of inputfile.",
-                  v => lineDelimiter = v },
                 { "f|format=", "the {format} for the output file [xls|xlsx].",
                   v => format = v },
                 { "t", "force all cells in output worksheet to be of type Text",
                   v => { if (v != null) textOnly = true; } },
+                { "q", "ignore double-quotes",
+                  v => { if (v != null) noQuotes = true; } },
                 { "v", "increase debug message verbosity",
                   v => { if (v != null) ++verbosity; } },
                 { "h|help",  "show this message and exit", 
@@ -84,12 +84,11 @@ namespace csv2excel
             Debug("outputFile: \t\t{0}", outputFile);
             Debug("inputFile: \t\t{0}", inputFile);
             Debug("columnDelimiter: \t{0}", columnDelimiter);
-            Debug("lineDelimiter: \t{0}", lineDelimiter);
             Debug("format: \t\t{0}", format);
             Debug("textOnly: \t\t{0}", textOnly);
+            Debug("noQuotes: \t\t{0}", noQuotes);
 
             columnDelimiter = Regex.Unescape(columnDelimiter);
-            lineDelimiter = Regex.Unescape(lineDelimiter);
 
             //if outputfile wasn't specified, set it to the same as the input file with the new extension
             if (String.IsNullOrWhiteSpace(outputFile))
@@ -98,13 +97,11 @@ namespace csv2excel
             }
 
             Debug("outputFile (calcd): \t{0}", outputFile);
-
-            string inputData = File.ReadAllText(inputFile);
- 
+             
             //remove any previous version of the file
             File.Delete(outputFile);
 
-            writeToWorkbook(outputFile, inputData, columnDelimiter, lineDelimiter, textOnly, format);
+            writeToWorkbook(outputFile, inputFile, columnDelimiter, textOnly, noQuotes, format);
 
             return 0;
         }
@@ -118,7 +115,7 @@ namespace csv2excel
             p.WriteOptionDescriptions(Console.Out);
             Console.WriteLine();
             Console.WriteLine("e.g.: {0} -i input.csv", System.AppDomain.CurrentDomain.FriendlyName);
-            Console.WriteLine("e.g.: {0} -i input.csv -c \\t -l \\r\\n", System.AppDomain.CurrentDomain.FriendlyName);
+            Console.WriteLine("e.g.: {0} -i input.csv -c \\t", System.AppDomain.CurrentDomain.FriendlyName);
         }
 
         static void Debug(string format, params object[] args)
@@ -130,7 +127,7 @@ namespace csv2excel
             }
         }
 
-        static void writeToWorkbook(string outputFile, string outputData, string columnDelimiter, string lineDelimiter, bool textOnly, string format)
+        static void writeToWorkbook(string outputFile, string inputFile, string columnDelimiter, bool textOnly, bool noQuotes, string format)
         {
             IWorkbook myWorkbook = null;
 
@@ -148,52 +145,46 @@ namespace csv2excel
             int rowCount = 0;
             int colCount = 0;
 
-            foreach (string currLine in outputData.Split(new String[] { lineDelimiter }, StringSplitOptions.None))
+            using (TextFieldParser parser = new TextFieldParser(inputFile))
             {
-                IRow row = mySheet.CreateRow(rowCount);
+                parser.SetDelimiters(columnDelimiter);
+                parser.HasFieldsEnclosedInQuotes = !noQuotes;
 
-                colCount = 0;
-
-                using (TextFieldParser parser = new TextFieldParser(new StringReader(currLine)))
+                while (!parser.EndOfData)
                 {
-                    parser.HasFieldsEnclosedInQuotes = true;
-                    parser.SetDelimiters(columnDelimiter);
+                    IRow row = mySheet.CreateRow(rowCount);
 
-                    string[] fields;
+                    colCount = 0;
+                    string[] fields = parser.ReadFields();
 
-                    while (!parser.EndOfData)
+                    foreach (string field in fields)
                     {
-                        fields = parser.ReadFields();
-
-                        foreach (string field in fields)
+                        if (textOnly)
                         {
-                            if (textOnly)
+                            row.CreateCell(colCount).SetCellValue(field);
+                        }
+                        else
+                        {
+                            double d;
+
+                            if (Double.TryParse(field, out d))
+                            {
+                                row.CreateCell(colCount).SetCellValue(d);
+                            }
+                            else //default to string/text
                             {
                                 row.CreateCell(colCount).SetCellValue(field);
                             }
-                            else
-                            {
-                                double d;
-
-                                if (Double.TryParse(field, out d))
-                                {
-                                    row.CreateCell(colCount).SetCellValue(d);
-                                }
-                                else //default to string/text
-                                {
-                                    row.CreateCell(colCount).SetCellValue(field);
-                                }
-                            }
-
-                            colCount++;
                         }
-                    }
-                }
 
-                rowCount++;
+                        colCount++;
+                    }
+
+                    rowCount++;
+                }
             }
 
-            //Write the stream data of workbook to the root directory
+            //Write the stream data of workbook
             using (FileStream file = new FileStream(outputFile, FileMode.Create))
             {
                 myWorkbook.Write(file);
