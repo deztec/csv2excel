@@ -27,7 +27,7 @@ namespace csv2excel
             string columnDelimiter = ",";
             string format = "xlsx";
             bool textOnly = false;
-            bool noQuotes = false;
+            bool ignoreQuotes = false;
             
             var p = new OptionSet() {
                 { "i|in=", "the {inputfile} to convert. (REQUIRED)",
@@ -41,7 +41,7 @@ namespace csv2excel
                 { "t", "force all cells in output worksheet to be of type Text",
                   v => { if (v != null) textOnly = true; } },
                 { "q", "ignore double-quotes",
-                  v => { if (v != null) noQuotes = true; } },
+                  v => { if (v != null) ignoreQuotes = true; } },
                 { "v", "increase debug message verbosity",
                   v => { if (v != null) ++verbosity; } },
                 { "h|help",  "show this message and exit", 
@@ -86,7 +86,7 @@ namespace csv2excel
             Debug("columnDelimiter: \t{0}", columnDelimiter);
             Debug("format: \t\t{0}", format);
             Debug("textOnly: \t\t{0}", textOnly);
-            Debug("noQuotes: \t\t{0}", noQuotes);
+            Debug("ignoreQuotes: \t\t{0}", ignoreQuotes);
 
             columnDelimiter = Regex.Unescape(columnDelimiter);
 
@@ -101,7 +101,7 @@ namespace csv2excel
             //remove any previous version of the file
             File.Delete(outputFile);
 
-            writeToWorkbook(outputFile, inputFile, columnDelimiter, textOnly, noQuotes, format);
+            writeToWorkbook(outputFile, inputFile, columnDelimiter, textOnly, ignoreQuotes, format);
 
             return 0;
         }
@@ -127,7 +127,7 @@ namespace csv2excel
             }
         }
 
-        static void writeToWorkbook(string outputFile, string inputFile, string columnDelimiter, bool textOnly, bool noQuotes, string format)
+        static void writeToWorkbook(string outputFile, string inputFile, string columnDelimiter, bool textOnly, bool ignoreQuotes, string format)
         {
             IWorkbook myWorkbook = null;
 
@@ -148,7 +148,7 @@ namespace csv2excel
             using (TextFieldParser parser = new TextFieldParser(inputFile))
             {
                 parser.SetDelimiters(columnDelimiter);
-                parser.HasFieldsEnclosedInQuotes = !noQuotes;
+                parser.HasFieldsEnclosedInQuotes = !ignoreQuotes;
 
                 while (!parser.EndOfData)
                 {
