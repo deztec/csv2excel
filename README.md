@@ -15,15 +15,14 @@ o = the path of the output file (path\filename.ext)
 c = the delimiter separating columns of input file
     default delimiter is commma (,)
     
-l = the delimiter separating lines of input file
-    default delimiter is carriage return line feed (\r\n)
-    
 f = the format for the output file [xls|xlsx]
     default format is Excel Open XML (xlsx)
 
 t = force all cells in the output worksheet to be of type Text
     default behavior is to insert as Numbers/Dates (in a General cell) if detected
 	
+q = ignore any double-quotes in the file instead of treating them as text-qualifiers
+
 v = increase debug message verbosity
 
 h = show command line options
