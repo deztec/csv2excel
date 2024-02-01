@@ -1,5 +1,5 @@
 # csv2excel
-.NET command line tool to convert delimited files to Excel format (xls/xlsx) without Excel having to be installed.
+.NET command line tool to convert delimited files to Microsoft Excel format (xls/xlsx) without Microsoft Excel having to be installed.
 
 The only required parameter is the input file to convert.
 
