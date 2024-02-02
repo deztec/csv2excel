@@ -23,6 +23,8 @@ t = force all cells in the output worksheet to be of type Text
 	
 q = ignore any double-quotes in the file instead of treating them as text-qualifiers
 
+r = resize width of worksheet columns to fit data
+
 v = increase debug message verbosity
 
 h = show command line options
