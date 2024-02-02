@@ -187,7 +187,7 @@ namespace csv2excel
                 }
             }
 
-            if(Parameters.resizeColumns)
+            if (Parameters.resizeColumns)
             {
                 for (int i = 0; i <= mySheet.GetRow(0).PhysicalNumberOfCells; i++)
                 {
