@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NPOI.SS.UserModel;
 using NPOI.HSSF.UserModel;
 using NPOI.XSSF.UserModel;
@@ -13,39 +9,44 @@ using Microsoft.VisualBasic.FileIO;
 
 namespace csv2excel
 {
+    class Parameters
+    {
+        internal static bool show_help = false;
+
+        //set default arguments
+        internal static string inputFile = "";
+        internal static string outputFile = "";
+        internal static string columnDelimiter = ",";
+        internal static string format = "xlsx";
+        internal static bool textOnly = false;
+        internal static bool ignoreQuotes = false;
+        internal static bool resizeColumns = false;
+    }
     class Program
     {
         static int verbosity;
 
         public static int Main(string[] args)
         {
-            bool show_help = false;
-            
-            //set default arguments
-            string inputFile = "";
-            string outputFile = "";
-            string columnDelimiter = ",";
-            string format = "xlsx";
-            bool textOnly = false;
-            bool ignoreQuotes = false;
-            
             var p = new OptionSet() {
                 { "i|in=", "the {inputfile} to convert. (REQUIRED)",
-                  v => inputFile = v },
+                  v => Parameters.inputFile = v },
                 { "o|out=", "the path of the {outputfile}.",
-                  v => outputFile = v },
+                  v => Parameters.outputFile = v },
                 { "c|coldel=", "the {delimiter} separating columns of inputfile.",
-                  v => columnDelimiter = v },
+                  v => Parameters.columnDelimiter = v },
                 { "f|format=", "the {format} for the output file [xls|xlsx].",
-                  v => format = v },
+                  v => Parameters.format = v },
                 { "t", "force all cells in output worksheet to be of type Text",
-                  v => { if (v != null) textOnly = true; } },
+                  v => { if (v != null) Parameters.textOnly = true; } },
                 { "q", "ignore double-quotes",
-                  v => { if (v != null) ignoreQuotes = true; } },
+                  v => { if (v != null) Parameters.ignoreQuotes = true; } },
+                { "r", "resize width of worksheet columns to fit data",
+                  v => { if (v != null) Parameters.resizeColumns = true; } },
                 { "v", "increase debug message verbosity",
                   v => { if (v != null) ++verbosity; } },
                 { "h|help",  "show this message and exit", 
-                  v => show_help = v != null },
+                  v => Parameters.show_help = v != null },
             };
 
             try
@@ -53,18 +54,19 @@ namespace csv2excel
                 p.Parse(args);
 
                 //this is the only required argument
-                if (String.IsNullOrWhiteSpace(inputFile))
+                if (String.IsNullOrWhiteSpace(Parameters.inputFile))
                 {
-                    show_help = true;
+                    Parameters.show_help = true;
                 }
 
-                format = format.ToLower();
+                Parameters.format = Parameters.format.ToLower();
 
-                if (format != "xlsx" && format != "xls")
+                if (Parameters.format != "xlsx" && Parameters.format != "xls")
                 {
-                    Console.WriteLine("Unrecognized format: {0}", format);
-                    show_help = true;
+                    Console.WriteLine("Unrecognized format: {0}", Parameters.format);
+                    Parameters.show_help = true;
                 }
+                
 
             }
             catch (OptionException e)
@@ -75,33 +77,34 @@ namespace csv2excel
                 return 1;
             }
 
-            if (show_help)
+            if (Parameters.show_help)
             {
                 ShowHelp(p);
                 return 0;
             }
 
-            Debug("outputFile: \t\t{0}", outputFile);
-            Debug("inputFile: \t\t{0}", inputFile);
-            Debug("columnDelimiter: \t{0}", columnDelimiter);
-            Debug("format: \t\t{0}", format);
-            Debug("textOnly: \t\t{0}", textOnly);
-            Debug("ignoreQuotes: \t\t{0}", ignoreQuotes);
+            Debug("outputFile: \t\t{0}", Parameters.outputFile);
+            Debug("inputFile: \t\t{0}", Parameters.inputFile);
+            Debug("columnDelimiter: \t{0}", Parameters.columnDelimiter);
+            Debug("format: \t\t{0}", Parameters.format);
+            Debug("textOnly: \t\t{0}", Parameters.textOnly);
+            Debug("ignoreQuotes: \t\t{0}", Parameters.ignoreQuotes);
+            Debug("resizeColumns: \t\t{0}", Parameters.resizeColumns);
 
-            columnDelimiter = Regex.Unescape(columnDelimiter);
+            Parameters.columnDelimiter = Regex.Unescape(Parameters.columnDelimiter);
 
             //if outputfile wasn't specified, set it to the same as the input file with the new extension
-            if (String.IsNullOrWhiteSpace(outputFile))
+            if (String.IsNullOrWhiteSpace(Parameters.outputFile))
             {
-                outputFile = inputFile.Replace(Path.GetExtension(inputFile), "." + format);
+                Parameters.outputFile = Parameters.inputFile.Replace(Path.GetExtension(Parameters.inputFile), "." + Parameters.format);
             }
 
-            Debug("outputFile (calcd): \t{0}", outputFile);
+            Debug("outputFile (calcd): \t{0}", Parameters.outputFile);
              
             //remove any previous version of the file
-            File.Delete(outputFile);
+            File.Delete(Parameters.outputFile);
 
-            writeToWorkbook(outputFile, inputFile, columnDelimiter, textOnly, ignoreQuotes, format);
+            writeToWorkbook();
 
             return 0;
         }
@@ -127,15 +130,15 @@ namespace csv2excel
             }
         }
 
-        static void writeToWorkbook(string outputFile, string inputFile, string columnDelimiter, bool textOnly, bool ignoreQuotes, string format)
+        static void writeToWorkbook()
         {
             IWorkbook myWorkbook = null;
 
-            if (format == "xlsx")
+            if (Parameters.format == "xlsx")
             {
                 myWorkbook = new XSSFWorkbook();
             }
-            else if (format == "xls")
+            else if (Parameters.format == "xls")
             {
                 myWorkbook = new HSSFWorkbook();
             }
@@ -145,10 +148,10 @@ namespace csv2excel
             int rowCount = 0;
             int colCount = 0;
 
-            using (TextFieldParser parser = new TextFieldParser(inputFile))
+            using (TextFieldParser parser = new TextFieldParser(Parameters.inputFile))
             {
-                parser.SetDelimiters(columnDelimiter);
-                parser.HasFieldsEnclosedInQuotes = !ignoreQuotes;
+                parser.SetDelimiters(Parameters.columnDelimiter);
+                parser.HasFieldsEnclosedInQuotes = !Parameters.ignoreQuotes;
 
                 while (!parser.EndOfData)
                 {
@@ -159,7 +162,7 @@ namespace csv2excel
 
                     foreach (string field in fields)
                     {
-                        if (textOnly)
+                        if (Parameters.textOnly)
                         {
                             row.CreateCell(colCount).SetCellValue(field);
                         }
@@ -184,8 +187,16 @@ namespace csv2excel
                 }
             }
 
+            if(Parameters.resizeColumns)
+            {
+                for (int i = 0; i <= mySheet.GetRow(0).PhysicalNumberOfCells; i++)
+                {
+                    mySheet.AutoSizeColumn(i);
+                }
+            }
+
             //Write the stream data of workbook
-            using (FileStream file = new FileStream(outputFile, FileMode.Create))
+            using (FileStream file = new FileStream(Parameters.outputFile, FileMode.Create))
             {
                 myWorkbook.Write(file);
                 file.Close();
