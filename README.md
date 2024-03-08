@@ -30,4 +30,4 @@ v = increase debug message verbosity
 h = show command line options
 
 
-Download the executable here: https://github.com/nmolinos/csv2excel/releases
+Download the executable here: https://github.com/deztec/csv2excel/releases
